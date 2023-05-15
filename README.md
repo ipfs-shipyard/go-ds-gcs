@@ -1,4 +1,4 @@
-# New Project Template
+# GCS Datastore Implementation for IPFS
 
 This is an implementation of the datastore interface backed by Google Cloud Storage, GCS.
 
