@@ -174,8 +174,7 @@ func configureIPFS(cfg *Config, bucket string) {
 	log.Printf("-------------------------------------------------")
 	log.Printf("Configure IPFS for bucket %v", bucket)
 	log.Printf("-------------------------------------------------")
-	ipfs := "/home/leffler/git/kubo/cmd/ipfs/ipfs"
-	cmd1 := exec.Command(ipfs, "init", "--profile", "gcsds")
+	cmd1 := exec.Command("ipfs", "init", "--profile", "gcsds")
 	cmd1.Env = append(cmd1.Environ(), fmt.Sprintf("IPFS_PATH=%s", cfg.IpfsPath))
 	cmd1.Env = append(cmd1.Environ(), fmt.Sprintf("KUBO_GCS_BUCKET=%s", bucket))
 	cmd1.Stdout = os.Stdout
@@ -187,8 +186,7 @@ func startIPFS(cfg *Config) {
 	log.Printf("-------------------------------------------------")
 	log.Printf("Start IPFS")
 	log.Printf("-------------------------------------------------")
-	ipfs := "/home/leffler/git/kubo/cmd/ipfs/ipfs"
-	cmd2 := exec.Command(ipfs, "daemon")
+	cmd2 := exec.Command("ipfs", "daemon")
 	cmd2.Env = append(cmd2.Environ(), fmt.Sprintf("IPFS_PATH=%s", cfg.IpfsPath))
 	cmd2.Stdout = os.Stdout
 	cmd2.Stderr = os.Stderr
