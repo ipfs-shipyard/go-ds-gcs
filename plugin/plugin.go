@@ -18,7 +18,7 @@ import (
 	"fmt"
 	"log"
 
-	gcsds "github.com/ipfs/go-ds-gcs"
+	gcsds "github.com/bjornleffler/go-ds-gcs"
 	"github.com/ipfs/kubo/plugin"
 	"github.com/ipfs/kubo/repo"
 	"github.com/ipfs/kubo/repo/fsrepo"
@@ -27,6 +27,10 @@ import (
 const (
 	defaultWorkers = 100
 	defaultPrefix  = "ipfs/"
+
+	// Use at most 1GB ram for the in memory LRU data cache.
+	// IPFS blocks are max 256kB, therefore bounded at 40'000 * 256kB.
+	defaultCacheSize = 40000
 )
 
 var Plugins = []plugin.Plugin{
@@ -69,24 +73,40 @@ func (plugin GCSPlugin) DatastoreConfigParser() fsrepo.ConfigFromMap {
 
 		var workers = defaultWorkers
 		if v, ok := m["workers"]; ok {
-			workersf, ok := v.(float64)
-			workers = int(workersf)
-			switch {
-			case !ok:
-				return nil, fmt.Errorf("gcsds: workers not a number")
-			case workers <= 0:
-				return nil, fmt.Errorf("gcsds: workers <= 0: %f", workersf)
-			case float64(workers) != workersf:
-				return nil, fmt.Errorf("gcsds: workers is not an integer: %f", workersf)
+			if w, ok := v.(float64); ok {
+				workers = int(w)
+			} else if w, ok := v.(int); ok {
+				workers = w
+			} else {
+				return nil, fmt.Errorf("gcsds: workers not a number: %T %v", v, v)
+			}
+			if workers <= 0 {
+				return nil, fmt.Errorf("gcsds: workers <= 0: %f", workers)
 			}
 		}
 
-		log.Printf("Parsed config: bucket: %s, prefix: %s, workers: %d", bucket, prefix, workers)
+		var cacheSize = defaultCacheSize
+		if v, ok := m["cachesize"]; ok {
+			if c, ok := v.(float64); ok {
+				cacheSize = int(c)
+			} else if c, ok := v.(int); ok {
+				cacheSize = c
+			} else {
+				return nil, fmt.Errorf("gcsds: cachesize not a number: %T %v", v, v)
+			}
+			if cacheSize <= 0 {
+				return nil, fmt.Errorf("gcsds: cachesize <= 0: %f", cacheSize)
+			}
+		}
+
+		log.Printf("Parsed GCS config: bucket: %s, prefix: %s, workers: %d, cachesize: %d",
+			bucket, prefix, workers, cacheSize)
 		return &GcsConfig{
 			cfg: gcsds.Config{
-				Bucket:  bucket,
-				Prefix:  prefix,
-				Workers: workers,
+				Bucket:         bucket,
+				Prefix:         prefix,
+				Workers:        workers,
+				DataCacheItems: cacheSize,
 			},
 		}, nil
 	}

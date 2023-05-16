@@ -23,6 +23,7 @@ import (
 	"time"
 
 	"cloud.google.com/go/storage"
+	lru "github.com/hashicorp/golang-lru"
 	ds "github.com/ipfs/go-datastore"
 	dsq "github.com/ipfs/go-datastore/query"
 	"google.golang.org/api/iterator"
@@ -31,28 +32,36 @@ import (
 var _ ds.Datastore = (*GCSDatastore)(nil)
 
 type Config struct {
-	Bucket  string
-	Prefix  string
-	Workers int
+	Bucket         string
+	Prefix         string
+	Workers        int
+	DataCacheItems int
 }
 
 type GCSDatastore struct {
 	Config
-	client  *storage.Client
-	mdCache *MetadataCache
+	client    *storage.Client
+	mdCache   *MetadataCache
+	dataCache *lru.Cache
 }
 
-func NewGCSDatastore(conf Config) (*GCSDatastore, error) {
+func NewGCSDatastore(cfg Config) (*GCSDatastore, error) {
 	ctx := context.Background()
 	client, err := storage.NewClient(ctx)
 	if err != nil {
 		log.Printf("Failed to create GCS client: %v\n", err)
 		return nil, err
 	}
+	dataCache, err := lru.New(cfg.DataCacheItems)
+	if err != nil {
+		log.Printf("Failed to create LRU cache err: %v\n", err)
+		return nil, err
+	}
 	gd := &GCSDatastore{
-		Config:  conf,
-		client:  client,
-		mdCache: NewMetadataCache(),
+		Config:    cfg,
+		client:    client,
+		mdCache:   NewMetadataCache(),
+		dataCache: dataCache,
 	}
 	if err = gd.CheckBucket(); err != nil {
 		return nil, err
@@ -116,6 +125,7 @@ func (gd *GCSDatastore) Put(ctx context.Context, k ds.Key, value []byte) error {
 		return err
 	}
 	gd.mdCache.Put(key, int64(len(value)))
+	gd.dataCache.Add(key, value)
 	return nil
 }
 
@@ -126,7 +136,16 @@ func (gd *GCSDatastore) Sync(ctx context.Context, prefix ds.Key) error {
 
 func (gd *GCSDatastore) Get(ctx context.Context, k ds.Key) ([]byte, error) {
 	// log.Printf("GET key: %v\n", k)
-	path := gd.GCSPath(k.String())
+	key := k.String()
+	if value, ok := gd.dataCache.Get(key); ok {
+		if b, ok := value.([]byte); ok {
+			log.Printf("Got value from datacache. key: %s size: %d", key, len(b))
+			return b, nil
+		} else {
+			log.Printf("Failed to read cached data value. key: %v", key)
+		}
+	}
+	path := gd.GCSPath(key)
 	obj := gd.client.Bucket(gd.Config.Bucket).Object(path)
 	_, err := obj.Attrs(ctx)
 	if err == storage.ErrObjectNotExist {
@@ -145,7 +164,9 @@ func (gd *GCSDatastore) Get(ctx context.Context, k ds.Key) ([]byte, error) {
 	defer r.Close()
 	buf := new(bytes.Buffer)
 	buf.ReadFrom(r)
-	return buf.Bytes(), nil
+	data := buf.Bytes()
+	gd.dataCache.Add(key, data)
+	return data, nil
 }
 
 func (gd *GCSDatastore) Has(ctx context.Context, k ds.Key) (exists bool, err error) {
