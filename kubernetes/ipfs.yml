@@ -1,0 +1,26 @@
+# Basic IPFS deployment.
+# Tested to work with GKE.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ipfs
+  labels:
+    app: ipfs
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ipfs
+  template:
+    metadata:
+      labels:
+        app: ipfs
+    spec:
+      # hostNetwork: true
+      # dnsPolicy: ClusterFirstWithHostNet
+      containers:
+        - name: ipfs
+          image: gcr.io/REPOSITORY/ipfs
+          imagePullPolicy: Always
+          command: ["/entrypoint"]
+          args: []

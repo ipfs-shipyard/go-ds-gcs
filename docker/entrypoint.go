@@ -39,26 +39,35 @@ type Config struct {
 }
 
 var (
-	cfg    = Config{}
 	client *storage.Client
+	SleepSeconds int
 )
 
 func parseArgs() Config {
+	cfg := Config{}
 	fs := flag.CommandLine
 	fs.StringVar(&cfg.Bucket, "bucket", "", "GCS bucket name.")
 	fs.StringVar(&cfg.IpfsPath, "path", "/ipfs", "IPFS disk path.")
 	fs.StringVar(&cfg.Project, "project", "", "GCP project name.")
 	fs.StringVar(&cfg.Prefix, "prefix", "ipfs/", "IPFS prefix in GCS bucket.")
-	fs.IntVar(&cfg.SleepSeconds, "sleep", 60, "Seconds to sleep on failure.")
+	fs.IntVar(&SleepSeconds, "sleep", 10, "Seconds to sleep on failure.")
 	flag.Parse()
 	return cfg
 }
 
-func fail(msg string) {
-	log.Printf(msg)
-	log.Printf("Sleep %d seconds.", cfg.SleepSeconds)
-	time.Sleep(time.Duration(cfg.SleepSeconds) * time.Second)
+func exit() {
+	log.Printf("Sleep %d seconds to avoid aggressive retries.", SleepSeconds)
+	time.Sleep(time.Duration(SleepSeconds) * time.Second)
 	os.Exit(1)
+}
+
+func getStorageClient(){
+	var err error
+	client, err = storage.NewClient(context.Background())
+	if err != nil {
+		log.Printf("Failed to create GCS client: %v", err)
+		exit()
+	}
 }
 
 // GetProject gets the GCP project ID from GCP crecentials.
@@ -70,12 +79,13 @@ func getProject() string {
 	// TODO(leffler): Explain how to specify credentials.
 	msg := "Failed to get project id. Please specify with -project option."
 	if err != nil {
-		msg = fmt.Sprintf("%s err: %v\n", msg, err)
-		fail(msg)
+		log.Printf("%s err: %v\n", msg, err)
+		exit()
 	}
 	project := credentials.ProjectID
 	if project == "" {
-		fail(msg)
+		log.Printf(msg)
+		exit()
 	}
 	return project
 }
@@ -112,7 +122,8 @@ func foundPrefixInGCS(project, bucket, prefix string) bool {
 			break
 		}
 		if err != nil {
-			fail(fmt.Sprintf("%v", err))
+			log.Printf("%v", err)
+			exit()
 		}
 		return true
 	}
@@ -124,7 +135,8 @@ func chooseProject(cfg *Config) {
 		cfg.Project = getProject()
 	}
 	if cfg.Project == "" {
-		fail("Failed to get project name. Please specify project with -project")
+		log.Printf("Failed to get project name. Please specify project with -project")
+		exit()
 	}
 }
 
@@ -133,25 +145,25 @@ func chooseBucket(cfg *Config) {
 	if cfg.Bucket == "" {
 		// List all available buckets in GCP project.
 		buckets, _ := listBuckets(cfg.Project)
-		if len(buckets) == 0 {
-			fail("No buckets found.")
-		}
-		// Pick any bucket with existing contents
-		for _, b := range buckets {
-			if foundPrefixInGCS(cfg.Project, b, cfg.Prefix) {
-				cfg.Bucket = b
-				return
+		if len(buckets) > 0 {
+			// Pick any bucket with existing contents
+			for _, b := range buckets {
+				if foundPrefixInGCS(cfg.Project, b, cfg.Prefix) {
+					cfg.Bucket = b
+					return
+				}
 			}
+			// Otherwise, just pick the first one.
+			cfg.Bucket = buckets[0]
 		}
-		// Otherwise, just pick the first one.
-		cfg.Bucket = buckets[0]
 	}
-	if cfg.Project == "" {
-		fail("Failed to get project name. Please specify project with -project")
+	if cfg.Bucket == "" {
+		log.Printf("Failed to choose a bucket. Please specify with -bucket argument.")
+		exit()
 	}
 }
 
-// checkBucket checks that the bucket is writeable.
+// checkBucket checks that the chosen bucket is writeable.
 func checkBucket(cfg *Config) {
 	ctx := context.Background()
 	object := cfg.Prefix + "test"
@@ -159,12 +171,15 @@ func checkBucket(cfg *Config) {
 	w := o.NewWriter(ctx)
 	w.ContentType = "text/plain"
 	if err := w.Close(); err != nil {
-		// TODO(leffler): Explain how to fix this. GCE VM premission?
-		fail(fmt.Sprintf("Failed to create file %v in bucket %v.", object, cfg.Bucket))
+		log.Printf("Failed to create gs://%s/%s", cfg.Bucket, object)
+		log.Printf("err: %v", err)
+		log.Printf("Does this system have write permissions to GCS?")
+		log.Printf("For GKE, does the node pool have \"Storage read/write\" permissions? (devstorage.read_write)")
+		exit()
 	}
 	// Clean up test file.
 	if err := o.Delete(ctx); err != nil {
-		log.Printf("Failed to delete gs://%s/%s", cfg.Bucket, object)
+		log.Printf("Failed to delete gs://%s/%s. Ignore and continue.", cfg.Bucket, object)
 	}
 }
 
@@ -198,12 +213,7 @@ func startIPFS(cfg *Config) {
 
 func main() {
 	cfg := parseArgs()
-
-	var err error
-	client, err = storage.NewClient(context.Background())
-	if err != nil {
-		fail(fmt.Sprintf("Failed to create GCS client: %v", err))
-	}
+	getStorageClient()
 
 	// 1. Choose a GCP project.
 	chooseProject(&cfg)
