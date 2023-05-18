@@ -119,64 +119,67 @@ func foundPrefixInGCS(project, bucket, prefix string) bool {
 	return false
 }
 
-func chooseProject(cfg *Config) (project string) {
-	project = cfg.Project
-	if project == "" {
-		project = getProject()
+func chooseProject(cfg *Config) {
+	if cfg.Project == "" {
+		cfg.Project = getProject()
 	}
-	return project
+	if cfg.Project == "" {
+		fail("Failed to get project name. Please specify project with -project")
+	}
 }
 
 // checkBucket chooses an appropriate bucket to use for IPFS.
-func chooseBucket(cfg *Config, project string) (bucket string) {
-	bucket = cfg.Bucket
-	if bucket == "" {
+func chooseBucket(cfg *Config) {
+	if cfg.Bucket == "" {
 		// List all available buckets in GCP project.
-		buckets, _ := listBuckets(project)
+		buckets, _ := listBuckets(cfg.Project)
 		if len(buckets) == 0 {
 			fail("No buckets found.")
 		}
 		// Pick any bucket with existing contents
 		for _, b := range buckets {
-			if foundPrefixInGCS(project, b, cfg.Prefix) {
-				return b
+			if foundPrefixInGCS(cfg.Project, b, cfg.Prefix) {
+				cfg.Bucket = b
+				return
 			}
 		}
 		// Otherwise, just pick the first one.
-		return buckets[0]
+		cfg.Bucket = buckets[0]
 	}
-	return bucket
+	if cfg.Project == "" {
+		fail("Failed to get project name. Please specify project with -project")
+	}
 }
 
 // checkBucket checks that the bucket is writeable.
-func checkBucket(project, bucket, prefix string) {
+func checkBucket(cfg *Config) {
 	ctx := context.Background()
 	object := cfg.Prefix + "test"
-	o := client.Bucket(bucket).Object(object)
+	o := client.Bucket(cfg.Bucket).Object(object)
 	w := o.NewWriter(ctx)
 	w.ContentType = "text/plain"
 	if err := w.Close(); err != nil {
 		// TODO(leffler): Explain how to fix this. GCE VM premission?
-		fail(fmt.Sprintf("Failed to create file %v in bucket %v.", object, bucket))
+		fail(fmt.Sprintf("Failed to create file %v in bucket %v.", object, cfg.Bucket))
 	}
 	// Clean up test file.
 	if err := o.Delete(ctx); err != nil {
-		log.Printf("Failed to delete gs://%s/%s", bucket, object)
+		log.Printf("Failed to delete gs://%s/%s", cfg.Bucket, object)
 	}
 }
 
-func configureIPFS(cfg *Config, bucket string) {
+func configureIPFS(cfg *Config) {
 	configPath := fmt.Sprintf("%s/%s", cfg.IpfsPath, "/config")
 	if _, err := os.Stat(configPath); err == nil {
 		log.Printf("IPFS already configured.")
 		return
 	}
 	log.Printf("-------------------------------------------------")
-	log.Printf("Configure IPFS for bucket %v", bucket)
+	log.Printf("Configure IPFS for bucket %v", cfg.Bucket)
 	log.Printf("-------------------------------------------------")
 	cmd1 := exec.Command("ipfs", "init", "--profile", "gcsds")
 	cmd1.Env = append(cmd1.Environ(), fmt.Sprintf("IPFS_PATH=%s", cfg.IpfsPath))
-	cmd1.Env = append(cmd1.Environ(), fmt.Sprintf("KUBO_GCS_BUCKET=%s", bucket))
+	cmd1.Env = append(cmd1.Environ(), fmt.Sprintf("KUBO_GCS_BUCKET=%s", cfg.Bucket))
 	cmd1.Stdout = os.Stdout
 	cmd1.Stderr = os.Stderr
 	cmd1.Run()
@@ -203,19 +206,19 @@ func main() {
 	}
 
 	// 1. Choose a GCP project.
-	project := chooseProject(&cfg)
-	log.Printf("Using GCP project: %v", project)
+	chooseProject(&cfg)
+	log.Printf("Using GCP project: %v", cfg.Project)
 
 	// 2. Choose a GCS bucket.
-	bucket := chooseBucket(&cfg, project)
-	log.Printf("Using GCS bucket: %v", bucket)
+	chooseBucket(&cfg)
+	log.Printf("Using GCS bucket: %v", cfg.Bucket)
 
 	// 3. Check that GCS Bucket is writable.
-	checkBucket(project, bucket, cfg.Prefix)
-	log.Printf("GCS bucket %v is writeable.", bucket)
+	checkBucket(&cfg)
+	log.Printf("GCS bucket %v is writeable.", cfg.Bucket)
 
 	// 4. Configure IPFS. Once only.
-	configureIPFS(&cfg, bucket)
+	configureIPFS(&cfg)
 
 	// 5. Start IPFS server.
 	startIPFS(&cfg)
