@@ -14,21 +14,26 @@ package gcsds
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import ds "github.com/ipfs/go-datastore"
+import (
+	"strings"
+
+	ds "github.com/ipfs/go-datastore"
+)
 
 type Metadata struct {
+	Key string
 	// Store object size as int64.
 	// In practice, all IPFS objects are max 256kB.
 	Size int64
 }
 
 type MetadataCache struct {
-	cache map[string]Metadata
+	cache map[string]*Metadata
 }
 
 func NewMetadataCache() *MetadataCache {
 	return &MetadataCache{
-		cache: make(map[string]Metadata),
+		cache: make(map[string]*Metadata),
 	}
 }
 
@@ -37,17 +42,50 @@ func (md *MetadataCache) Has(key string) bool {
 	return ok
 }
 
-func (md *MetadataCache) Get(key string) (Metadata, error) {
+func (md *MetadataCache) Get(key string) (*Metadata, error) {
 	if v, ok := md.cache[key]; ok {
 		return v, nil
 	}
-	return Metadata{Size: 0}, ds.ErrNotFound
+	return nil, ds.ErrNotFound
 }
 
 func (md *MetadataCache) Put(key string, size int64) {
-	md.cache[key] = Metadata{Size: size}
+	md.cache[key] = &Metadata{Key: key, Size: size}
 }
 
 func (md *MetadataCache) Delete(key string) {
 	delete(md.cache, key)
+}
+
+func (md *MetadataCache) Size() int {
+	return len(md.cache)
+}
+
+// Offset not supported, for now.
+func (md *MetadataCache) Iterator(prefix string, limit int) (func() (*Metadata, bool)) {
+	values := []*Metadata{}
+	count := 0
+	// TODO(leffler): Iterate consistently over map, so that offset and limit work correctly.
+	for k, v := range md.cache {
+		if prefix == "" || strings.HasPrefix(k, prefix) {
+			values = append(values, v)
+			count++
+		}
+		if limit > 0 && count == limit {
+			break
+		}
+	}
+	i := 0
+	l := len(values)
+
+	f := func() (*Metadata, bool) {
+		if i >= l {
+			return nil, false
+		}
+		v := values[i]
+		hasNext := i+1 < l
+		i++
+		return v, hasNext
+	}
+	return f
 }

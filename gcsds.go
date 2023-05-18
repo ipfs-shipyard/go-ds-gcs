@@ -17,6 +17,7 @@ package gcsds
 import (
 	"bytes"
 	"context"
+	"fmt"
 	"log"
 	"path"
 	"strings"
@@ -139,11 +140,10 @@ func (gd *GCSDatastore) Get(ctx context.Context, k ds.Key) ([]byte, error) {
 	key := k.String()
 	if value, ok := gd.dataCache.Get(key); ok {
 		if b, ok := value.([]byte); ok {
-			log.Printf("Got value from datacache. key: %s size: %d", key, len(b))
+			// log.Printf("Got value from datacache. key: %s size: %d", key, len(b))
 			return b, nil
-		} else {
-			log.Printf("Failed to read cached data value. key: %v", key)
 		}
+		log.Printf("Failed to read cached data value. Fetching from GCS. key: %v", key)
 	}
 	path := gd.GCSPath(key)
 	obj := gd.client.Bucket(gd.Config.Bucket).Object(path)
@@ -187,19 +187,66 @@ func (gd *GCSDatastore) GetSize(ctx context.Context, k ds.Key) (size int, err er
 func (gd *GCSDatastore) Delete(ctx context.Context, k ds.Key) error {
 	// log.Printf("DELETE key: %v\n", k)
 	bucket := gd.client.Bucket(gd.Config.Bucket)
-	path := gd.GCSPath(k.String())
+	key := k.String()
+	path := gd.GCSPath(key)
 	err := bucket.Object(path).Delete(ctx)
 	// Don't error for missing objects. Double deletes are OK.
 	if err != nil && err != storage.ErrObjectNotExist {
 		return err
 	}
-	gd.mdCache.Delete(k.String())
+	gd.mdCache.Delete(key)
+	gd.dataCache.Remove(key)
 	return nil
 }
 
 func (gd *GCSDatastore) Query(ctx context.Context, q dsq.Query) (dsq.Results, error) {
 	log.Printf("QUERY.\n")
-	return nil, nil
+	log.Printf("q: %v", q)
+	log.Printf("q.Orders: %v", q.Orders)
+	log.Printf("q.Filters: %v", q.Filters)
+	log.Printf("q.Prefix: %v", q.Prefix)
+	log.Printf("q.Limit: %v", q.Limit)
+	log.Printf("q.Offset: %v", q.Offset)
+	log.Printf("q.KeysOnly: %v", q.KeysOnly)
+	log.Printf("q.ReturnExpirations bool: %v", q.ReturnExpirations)
+	log.Printf("q.ReturnsSizes: %v", q.ReturnsSizes)
+
+	if len(q.Orders) > 0 || len(q.Filters) > 0 {
+		log.Printf("Orders and Filters not supported.")
+		return nil, fmt.Errorf("Orders and Filters not supported.")
+	}
+
+	// Trim prefix
+	q.Prefix = strings.TrimPrefix(q.Prefix, "/")
+
+	metadata := gd.mdCache.Iterator(q.Prefix, q.Limit)
+
+	// Fetching all values is kind of expensive, so log the fact that it was requested.
+	if !q.KeysOnly {
+		log.Printf("Requested all values for prefix %v", q.Prefix)
+	}
+
+	nextValue := func() (dsq.Result, bool) {
+		v, hasNext := metadata()
+		if q.KeysOnly {
+			// Size is always returned from the metadata cache.
+			// Always include size, whether it was requested or not.
+			return dsq.Result{Entry: dsq.Entry{Key: v.Key, Size: int(v.Size)}}, hasNext
+		}
+		value, err := gd.Get(ctx, ds.NewKey(v.Key))
+		if err != nil {
+			return dsq.Result{Error: err}, hasNext
+		}
+		return dsq.Result{Entry: dsq.Entry{Key: v.Key, Size: int(v.Size), Value: value}}, hasNext
+	}
+
+	res := dsq.ResultsFromIterator(q, dsq.Iterator{
+		Close: func() error {
+			return nil
+		},
+		Next: nextValue,
+	})
+	return res, nil
 }
 
 func (gd *GCSDatastore) Batch(_ context.Context) (ds.Batch, error) {
@@ -208,7 +255,6 @@ func (gd *GCSDatastore) Batch(_ context.Context) (ds.Batch, error) {
 }
 
 func (gd *GCSDatastore) Close() error {
-	log.Printf("CLOSE.\n")
 	return nil
 }
 

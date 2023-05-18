@@ -17,32 +17,18 @@ package test
 import (
 	"bytes"
 	"context"
-	"math/rand"
 	"testing"
 
 	ds "github.com/ipfs/go-datastore"
-	gcsds "github.com/ipfs/go-ds-gcs"
+	gcsds "github.com/bjornleffler/go-ds-gcs"
 )
-
-var letters = []rune("ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789")
-
-func randSeq(n int) string {
-	b := make([]rune, n)
-	for i := range b {
-		b[i] = letters[rand.Intn(len(letters))]
-	}
-	return string(b)
-}
-
-func randomKey() ds.Key {
-	return ds.NewKey("/" + randSeq(55))
-}
 
 func GetGCSDatastore(t *testing.T) *gcsds.GCSDatastore {
 	config := gcsds.Config{
 		Bucket:  "leffler-ipfs-test",
 		Prefix:  "ipfs",
 		Workers: 10,
+		DataCacheItems: 1000,
 	}
 	ds, err := gcsds.NewGCSDatastore(config)
 	if err != nil {
@@ -140,7 +126,7 @@ func TestAll(t *testing.T) {
 	ds := GetGCSDatastore(t)
 	key := randomKey()
 	size := 100 // max IPFS block size
-	value := []byte(randSeq(size))
+	value := []byte(randomSeq(size))
 	ctx := context.Background()
 	testNegative(t, ctx, ds, key)
 	testPut(t, ctx, ds, key, value)
@@ -153,7 +139,7 @@ func TestReload(t *testing.T) {
 	ds1 := GetGCSDatastore(t)
 	key := randomKey()
 	size := 100 // max IPFS block size
-	value := []byte(randSeq(size))
+	value := []byte(randomSeq(size))
 	ctx := context.Background()
 	testNegative(t, ctx, ds1, key)
 	testPut(t, ctx, ds1, key, value)
