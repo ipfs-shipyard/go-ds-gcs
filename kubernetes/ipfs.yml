@@ -1,5 +1,4 @@
-# Basic IPFS deployment.
-# Tested to work with GKE.
+# Basic IPFS deployment. Tested to work with GKE.
 
 # Copyright 2023 Google LLC
 #
@@ -14,6 +13,11 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
+# Please note:
+# The GKE K8s node pool MUST be configured with write permission to GCS.
+# The scope of "Storage read/write" is
+# https://www.googleapis.com/auth/devstorage.read_write
 
 apiVersion: apps/v1
 kind: Deployment
