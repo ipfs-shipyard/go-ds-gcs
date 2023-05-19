@@ -184,12 +184,10 @@ func checkBucket(cfg *Config) {
 }
 
 func run(path string, args []string, env []string) {
-	cmd := exec.Cmd{Path: path, Args: args}
+	cmd := exec.Cmd{Path: path, Args: args, Stdout: os.Stdout, Stderr: os.Stderr}
 	for _, s := range env {
 		cmd.Env = append(cmd.Env, s)
 	}
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
 	cmd.Run()
 }
 
