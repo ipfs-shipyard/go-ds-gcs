@@ -18,14 +18,27 @@ import (
 	"bytes"
 	"context"
 	"testing"
+	"os"
 
 	ds "github.com/ipfs/go-datastore"
+	dsq "github.com/ipfs/go-datastore/query"
 	gcsds "github.com/bjornleffler/go-ds-gcs"
+	dstest "github.com/ipfs/go-datastore/test"
 )
+
+// GCS test bucket is specified as an environmment variable. Example:
+// GCS_TEST_BUCKET=mybucket go test
+func getTestBucket(t *testing.T) string {
+	bucket := os.Getenv("GCS_TEST_BUCKET")
+	if bucket == "" {
+		t.Fatalf("GCS_TEST_BUCKET is not set.")
+	}
+	return bucket
+}
 
 func GetGCSDatastore(t *testing.T) *gcsds.GCSDatastore {
 	config := gcsds.Config{
-		Bucket:  "leffler-ipfs-test",
+		Bucket:  getTestBucket(t),
 		Prefix:  "ipfs",
 		Workers: 10,
 		DataCacheItems: 1000,
@@ -154,4 +167,53 @@ func TestReload(t *testing.T) {
 	testPositive(t, ctx, ds2, key, value)
 	testDelete(t, ctx, ds2, key)
 	testNegative(t, ctx, ds2, key)
+}
+
+func TestQuery(t *testing.T) {
+	ds := GetGCSDatastore(t)
+	key1, key2 := randomKey(), randomKey()
+	size := 100 // max IPFS block size
+	value1, value2 := []byte(randomSeq(size)), []byte(randomSeq(size))
+	ctx := context.Background()
+	testNegative(t, ctx, ds, key1)
+	testNegative(t, ctx, ds, key2)
+	testPut(t, ctx, ds, key1, value1)
+	testPut(t, ctx, ds, key2, value2)
+	q := dsq.Query{Prefix: "/", KeysOnly: true}
+	results, err := ds.Query(context.Background(), q)
+	if err != nil {
+		t.Fatalf("Query err: %v", err)
+	}
+	entries, err := results.Rest()
+	expected := 2
+	if len(entries) != expected {
+		t.Fatalf("Got %d entries, expected %d.", len(entries), expected)
+	}
+}
+
+func TestSuiteGCS(t *testing.T) {
+	config := gcsds.Config{
+		Bucket: getTestBucket(t),
+		Prefix: "ipfs",
+		Workers: 100,
+		DataCacheItems: 40000,
+	}
+
+	gcsds, err := gcsds.NewGCSDatastore(config)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	t.Run("basic operations", func(t *testing.T) {
+		dstest.SubtestBasicPutGet(t, gcsds)
+	})
+	t.Run("not found operations", func(t *testing.T) {
+		dstest.SubtestNotFounds(t, gcsds)
+	})
+	t.Run("many puts and gets, query", func(t *testing.T) {
+		dstest.SubtestManyKeysAndQuery(t, gcsds)
+	})
+	t.Run("return sizes", func(t *testing.T) {
+		dstest.SubtestReturnSizes(t, gcsds)
+	})
 }

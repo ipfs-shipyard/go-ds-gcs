@@ -62,12 +62,12 @@ func (md *MetadataCache) Size() int {
 }
 
 // Offset not supported, for now.
-func (md *MetadataCache) Iterator(prefix string, limit int) (func() (*Metadata, bool)) {
+func (md *MetadataCache) Iterator(prefix string, limit int) (func() (*Metadata)) {
 	values := []*Metadata{}
 	count := 0
 	// TODO(leffler): Iterate consistently over map, so that offset and limit work correctly.
 	for k, v := range md.cache {
-		if prefix == "" || strings.HasPrefix(k, prefix) {
+		if strings.HasPrefix(k, prefix) {
 			values = append(values, v)
 			count++
 		}
@@ -75,17 +75,16 @@ func (md *MetadataCache) Iterator(prefix string, limit int) (func() (*Metadata, 
 			break
 		}
 	}
+
 	i := 0
 	l := len(values)
-
-	f := func() (*Metadata, bool) {
+	f := func() (*Metadata) {
 		if i >= l {
-			return nil, false
+			return nil
 		}
 		v := values[i]
-		hasNext := i+1 < l
 		i++
-		return v, hasNext
+		return v
 	}
 	return f
 }

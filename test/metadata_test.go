@@ -45,13 +45,10 @@ func TestEntry(t *testing.T) {
 
 func TestIteratorEmpty(t *testing.T) {
 	md := gcsds.NewMetadataCache()
-	it := md.Iterator("", 0)
-	v, hasNext := it()
+	iterator := md.Iterator("", 0)
+	v := iterator()
 	if v != nil {
 		t.Fatalf("Expected nil value from empty metadata cache.")
-	}
-	if hasNext {
-		t.Fatalf("Expected negative hasNext from empty metadata cache.")
 	}
 }
 
@@ -60,8 +57,8 @@ func TestIteratorSingleEntry(t *testing.T) {
 	key := randomKey().String()
 	size := int64(1000)
 	md.Put(key, size)
-	it := md.Iterator("", 0)
-	v, hasNext := it()
+	iterator := md.Iterator("", 0)
+	v := iterator()
 	if v == nil {
 		t.Fatalf("Expected single value from single entry metadata cache.")
 	}
@@ -70,9 +67,6 @@ func TestIteratorSingleEntry(t *testing.T) {
 	}
 	if v.Size != size {
 		t.Fatalf("Expected size: %v got size: %v", size, v.Size)
-	}
-	if hasNext {
-		t.Fatalf("Expected negative hasNext from single entry metadata cache.")
 	}
 }
 
@@ -90,12 +84,12 @@ func metadataCacheWithEntries() (*gcsds.MetadataCache) {
 	return md
 }
 
-func getEntries(it func() (*gcsds.Metadata, bool)) (map[string]int64) {
+func getEntries(it func() (*gcsds.Metadata)) (map[string]int64) {
 	entries := map[string]int64{}
-	m, _ := it()
+	m := it()
 	for m != nil {
 		entries[m.Key] = m.Size
-		m, _ = it()
+		m = it()
 	}
 	return entries
 }

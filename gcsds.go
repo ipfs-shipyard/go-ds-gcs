@@ -179,7 +179,7 @@ func (gd *GCSDatastore) GetSize(ctx context.Context, k ds.Key) (size int, err er
 	md, err := gd.mdCache.Get(k.String())
 	if err != nil {
 		// TODO: Handle not found error.
-		return 0, err
+		return -1, err
 	}
 	return int(md.Size), nil
 }
@@ -200,44 +200,32 @@ func (gd *GCSDatastore) Delete(ctx context.Context, k ds.Key) error {
 }
 
 func (gd *GCSDatastore) Query(ctx context.Context, q dsq.Query) (dsq.Results, error) {
-	log.Printf("QUERY.\n")
-	log.Printf("q: %v", q)
-	log.Printf("q.Orders: %v", q.Orders)
-	log.Printf("q.Filters: %v", q.Filters)
-	log.Printf("q.Prefix: %v", q.Prefix)
-	log.Printf("q.Limit: %v", q.Limit)
-	log.Printf("q.Offset: %v", q.Offset)
-	log.Printf("q.KeysOnly: %v", q.KeysOnly)
-	log.Printf("q.ReturnExpirations bool: %v", q.ReturnExpirations)
-	log.Printf("q.ReturnsSizes: %v", q.ReturnsSizes)
-
 	if len(q.Orders) > 0 || len(q.Filters) > 0 {
-		log.Printf("Orders and Filters not supported.")
-		return nil, fmt.Errorf("Orders and Filters not supported.")
+		msg := "GCSDatastore: Orders and Filters not supported."
+		log.Printf(msg)
+		return nil, fmt.Errorf(msg)
 	}
-
-	// Trim prefix
-	q.Prefix = strings.TrimPrefix(q.Prefix, "/")
+	if !q.KeysOnly {
+		log.Printf("GCSDatastore: Requested all values for prefix '%v'. This could be expensive.", q.Prefix)
+	}
 
 	metadata := gd.mdCache.Iterator(q.Prefix, q.Limit)
-
-	// Fetching all values is kind of expensive, so log the fact that it was requested.
-	if !q.KeysOnly {
-		log.Printf("Requested all values for prefix %v", q.Prefix)
-	}
-
 	nextValue := func() (dsq.Result, bool) {
-		v, hasNext := metadata()
-		if q.KeysOnly {
-			// Size is always returned from the metadata cache.
-			// Always include size, whether it was requested or not.
-			return dsq.Result{Entry: dsq.Entry{Key: v.Key, Size: int(v.Size)}}, hasNext
+		v := metadata()
+		if v == nil {
+			return dsq.Result{Error: ds.ErrNotFound}, false
 		}
-		value, err := gd.Get(ctx, ds.NewKey(v.Key))
-		if err != nil {
-			return dsq.Result{Error: err}, hasNext
+		// Always return size, whether it was requested or not.
+		entry := dsq.Entry{Key: v.Key, Size: int(v.Size)}
+		if !q.KeysOnly {
+			value, err := gd.Get(ctx, ds.NewKey(v.Key))
+			if err != nil {
+				log.Printf("GCSDatastore: Error getting value. err: %v", err)
+				return dsq.Result{Error: err}, false
+			}
+			entry.Value = value
 		}
-		return dsq.Result{Entry: dsq.Entry{Key: v.Key, Size: int(v.Size), Value: value}}, hasNext
+		return dsq.Result{Entry: entry}, true
 	}
 
 	res := dsq.ResultsFromIterator(q, dsq.Iterator{
