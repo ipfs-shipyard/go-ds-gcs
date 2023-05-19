@@ -183,6 +183,16 @@ func checkBucket(cfg *Config) {
 	}
 }
 
+func run(path string, args []string, env []string) {
+	cmd := exec.Cmd{Path: path, Args: args}
+	for _, s := range env {
+		cmd.Env = append(cmd.Env, s)
+	}
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	cmd.Run()
+}
+
 func configureIPFS(cfg *Config) {
 	configPath := fmt.Sprintf("%s/%s", cfg.IpfsPath, "/config")
 	if _, err := os.Stat(configPath); err == nil {
@@ -192,28 +202,18 @@ func configureIPFS(cfg *Config) {
 	log.Printf("-------------------------------------------------")
 	log.Printf("Configure IPFS for bucket %v", cfg.Bucket)
 	log.Printf("-------------------------------------------------")
-	cmd1 := exec.Command("ipfs", "init", "--profile", "gcsds")
-	cmd1.Env = append(cmd1.Environ(), fmt.Sprintf("IPFS_PATH=%s", cfg.IpfsPath))
-	cmd1.Env = append(cmd1.Environ(), fmt.Sprintf("KUBO_GCS_BUCKET=%s", cfg.Bucket))
-	cmd1.Stdout = os.Stdout
-	cmd1.Stderr = os.Stderr
-	cmd1.Run()
-	cmd2 := exec.Command("ipfs", "config", "profile", "server")
-	cmd2.Env = append(cmd2.Environ(), fmt.Sprintf("IPFS_PATH=%s", cfg.IpfsPath))
-	cmd2.Stdout = os.Stdout
-	cmd2.Stderr = os.Stderr
-	cmd2.Run()
+	ipfsPath := fmt.Sprintf("IPFS_PATH=%s", cfg.IpfsPath)
+	bucket := fmt.Sprintf("KUBO_GCS_BUCKET=%s", cfg.Bucket)
+	run("ipfs", []string{"init", "--profile", "gcsds"}, []string{ipfsPath, bucket})
+	run("ipfs", []string{"config", "profile", "server"}, []string{ipfsPath})
 }
 
 func startIPFS(cfg *Config) {
 	log.Printf("-------------------------------------------------")
 	log.Printf("Start IPFS")
 	log.Printf("-------------------------------------------------")
-	cmd2 := exec.Command("ipfs", "daemon")
-	cmd2.Env = append(cmd2.Environ(), fmt.Sprintf("IPFS_PATH=%s", cfg.IpfsPath))
-	cmd2.Stdout = os.Stdout
-	cmd2.Stderr = os.Stderr
-	cmd2.Run()
+	ipfsPath := fmt.Sprintf("IPFS_PATH=%s", cfg.IpfsPath)
+	run("ipfs", []string{"daemon"}, []string{ipfsPath})
 }
 
 func main() {
