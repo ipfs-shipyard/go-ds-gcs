@@ -198,6 +198,11 @@ func configureIPFS(cfg *Config) {
 	cmd1.Stdout = os.Stdout
 	cmd1.Stderr = os.Stderr
 	cmd1.Run()
+	cmd2 := exec.Command("ipfs", "config", "profile", "server")
+	cmd2.Env = append(cmd2.Environ(), fmt.Sprintf("IPFS_PATH=%s", cfg.IpfsPath))
+	cmd2.Stdout = os.Stdout
+	cmd2.Stderr = os.Stderr
+	cmd2.Run()
 }
 
 func startIPFS(cfg *Config) {
