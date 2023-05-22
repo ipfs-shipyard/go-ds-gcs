@@ -228,11 +228,12 @@ func main() {
 
 	// 1. Choose a GCP project.
 	chooseProject(&cfg)
-	log.Printf("Using GCP project: %v", cfg.Project)
+	log.Printf("Using IPFS Path: '%v'", cfg.IpfsPath)
+	log.Printf("Using GCP project: '%v'", cfg.Project)
 
 	// 2. Choose a GCS bucket.
 	chooseBucket(&cfg)
-	log.Printf("Using GCS bucket: %v", cfg.Bucket)
+	log.Printf("Using GCS bucket: '%v'", cfg.Bucket)
 
 	// 3. Check that GCS Bucket is writable.
 	checkBucket(&cfg)
