@@ -47,7 +47,8 @@ func parseArgs() Config {
 	cfg := Config{}
 	fs := flag.CommandLine
 	fs.StringVar(&cfg.Bucket, "bucket", "", "GCS bucket name.")
-	fs.StringVar(&cfg.IpfsPath, "path", "/ipfs", "IPFS disk path.")
+	fs.StringVar(&cfg.IpfsPath, "path", os.Getenv("IPFS_PATH"),
+		"IPFS disk path. Default: $IPFS_PATH")
 	fs.StringVar(&cfg.Project, "project", "", "GCP project name.")
 	fs.StringVar(&cfg.Prefix, "prefix", "ipfs/", "IPFS prefix in GCS bucket.")
 	fs.IntVar(&SleepSeconds, "sleep", 10, "Seconds to sleep on failure.")
@@ -183,7 +184,7 @@ func checkBucket(cfg *Config) {
 	}
 }
 
-func run(args []string, env []string) {
+func run(args []string, env ...string) {
 	cmd := exec.Command(args[0], args[1:]...)
 	for _, s := range env {
 		cmd.Env = append(cmd.Env, s)
@@ -210,15 +211,15 @@ func configureIPFS(cfg *Config) {
 	log.Printf("Configure IPFS for bucket %v", cfg.Bucket)
 	ipfsPath := fmt.Sprintf("IPFS_PATH=%s", cfg.IpfsPath)
 	bucket := fmt.Sprintf("KUBO_GCS_BUCKET=%s", cfg.Bucket)
-	run([]string{"ipfs", "init", "--profile", "gcsds"}, []string{ipfsPath, bucket})
-	run([]string{"ipfs", "config", "profile", "apply", "server"}, []string{ipfsPath})
+	run([]string{"ipfs", "init", "--profile", "gcsds"}, bucket, ipfsPath)
+	run([]string{"ipfs", "config", "profile", "apply", "server"}, ipfsPath)
 }
 
 func startIPFS(cfg *Config) {
 	log.Printf("-------------------------------------------------")
 	log.Printf("Start IPFS")
 	ipfsPath := fmt.Sprintf("IPFS_PATH=%s", cfg.IpfsPath)
-	run([]string{"ipfs", "daemon"}, []string{ipfsPath})
+	run([]string{"ipfs", "daemon"}, ipfsPath)
 }
 
 func main() {

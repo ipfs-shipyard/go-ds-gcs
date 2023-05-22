@@ -20,6 +20,7 @@ RUN apt update && apt install --yes ca-certificates
 ADD git/kubo/cmd/ipfs/ipfs /bin/ipfs
 ADD git/go-ds-gcs/entrypoint /entrypoint
 
-RUN mkdir /ipfs
+ENV IPFS_PATH /ipfs
+RUN mkdir -p $IPFS_PATH
 
 ENTRYPOINT /entrypoint
