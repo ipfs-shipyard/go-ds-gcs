@@ -183,12 +183,21 @@ func checkBucket(cfg *Config) {
 	}
 }
 
-func run(path string, args []string, env []string) {
-	cmd := exec.Cmd{Path: path, Args: args, Stdout: os.Stdout, Stderr: os.Stderr}
+func run(args []string, env []string) {
+	cmd := exec.Command(args[0], args[1:]...)
 	for _, s := range env {
 		cmd.Env = append(cmd.Env, s)
 	}
-	cmd.Run()
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	log.Printf("-------------------------------------------------")
+	log.Printf("# Command: %v", cmd)
+	log.Printf("# Environment: %v", env)
+	log.Printf("-------------------------------------------------")
+	err := cmd.Run()
+	if err != nil {
+		log.Fatalf("Error: %v", err)
+	}
 }
 
 func configureIPFS(cfg *Config) {
@@ -199,19 +208,17 @@ func configureIPFS(cfg *Config) {
 	}
 	log.Printf("-------------------------------------------------")
 	log.Printf("Configure IPFS for bucket %v", cfg.Bucket)
-	log.Printf("-------------------------------------------------")
 	ipfsPath := fmt.Sprintf("IPFS_PATH=%s", cfg.IpfsPath)
 	bucket := fmt.Sprintf("KUBO_GCS_BUCKET=%s", cfg.Bucket)
-	run("ipfs", []string{"init", "--profile", "gcsds"}, []string{ipfsPath, bucket})
-	run("ipfs", []string{"config", "profile", "server"}, []string{ipfsPath})
+	run([]string{"ipfs", "init", "--profile", "gcsds"}, []string{ipfsPath, bucket})
+	run([]string{"ipfs", "config", "profile", "apply", "server"}, []string{ipfsPath})
 }
 
 func startIPFS(cfg *Config) {
 	log.Printf("-------------------------------------------------")
 	log.Printf("Start IPFS")
-	log.Printf("-------------------------------------------------")
 	ipfsPath := fmt.Sprintf("IPFS_PATH=%s", cfg.IpfsPath)
-	run("ipfs", []string{"daemon"}, []string{ipfsPath})
+	run([]string{"ipfs", "daemon"}, []string{ipfsPath})
 }
 
 func main() {
