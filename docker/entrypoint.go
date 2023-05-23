@@ -211,8 +211,14 @@ func configureIPFS(cfg *Config) {
 	log.Printf("Configure IPFS for bucket %v", cfg.Bucket)
 	ipfsPath := fmt.Sprintf("IPFS_PATH=%s", cfg.IpfsPath)
 	bucket := fmt.Sprintf("KUBO_GCS_BUCKET=%s", cfg.Bucket)
+	// Bootstrap IPFS with GCS datastore.
 	run([]string{"ipfs", "init", "--profile", "gcsds"}, bucket, ipfsPath)
+	// Apply server profile. This disables announcements to local networks.
 	run([]string{"ipfs", "config", "profile", "apply", "server"}, ipfsPath)
+	// Expose gateway port.
+	run([]string{"ipfs", "config", "Addresses.Gateway", "/ip4/0.0.0.0/tcp/8080"})
+	// Expose admin port.
+	// run([]string{"ipfs", "config", "Addresses.API", "/ip4/0.0.0.0/tcp/5001"})
 }
 
 func startIPFS(cfg *Config) {
