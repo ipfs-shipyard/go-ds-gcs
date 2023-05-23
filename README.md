@@ -54,7 +54,7 @@ docker run -d -p 4001:4001 -p 5001:5001 -p 8080:8080 --name=ipfs ipfs
 
 Or you can use the tagged image from the previous section.
 ```bash
-docker run -d -p 4001:4001 -p 5001:5001 -p 8080:8080 --name=ipfs gcr.io/REPOSITORY/ipfs
+docker run -d -p 4001:4001 -p 5001:5001 -p 8080:8080 --name=ipfs gcr.io/repository/ipfs
 ```
 
 ## Deployment: Kubernetes (GKE)
@@ -82,7 +82,7 @@ curl http://ipfs.mynamespace:8080/...
 For a brand new ipfs instance (no data stored yet):
 
 1. Install kubo/cmd/ipfs/ipfs
-2. Initialize IPFS. Replace _mybucket_ with your bucket name. Note that this depends on code yet to be submitted to kubo.
+2. Initialize IPFS. Replace _mybucket_ with your bucket name. Note that this depends on this [Pull Request](https://github.com/ipfs/kubo/pull/9889).
 ```bash
 KUBO_GCS_BUCKET=mybucket ipfs init --profile gcsds
 ```
