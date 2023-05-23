@@ -1,82 +1,120 @@
 # GCS Datastore Implementation for IPFS
 
-This is an implementation of the datastore interface backed by Google Cloud Storage, GCS.
-
-The implementation is based on [go-ds-s3](https://github.com/ipfs/go-ds-s3)
-
-**NOTE:** Plugins only work on Linux and MacOS at the moment. You can track the progress of this issue here: https://github.com/golang/go/issues/19282
+An implementation of the [go-datastore](https://github.com/ipfs/go-datastore) interface backed by Google Cloud Storage, GCS. The implementation is based on [go-ds-s3](https://github.com/ipfs/go-ds-s3)
 
 ## Building binary
 Build this plugin as an included plugin with kubo.
 
+Clone kubo.
 ```bash
-
-# Clone kubo.
-> git clone https://github.com/ipfs/kubo
-> cd kubo
-
-# Pull in the datastore plugin (you can specify a version other than latest if you'd like).
-> go get github.com/bjornleffler/go-ds-gcs/plugin@latest
-
-# Add the plugin to the preload list.
-> echo "gcsds github.com/bjornleffler/go-ds-gcs/plugin 0" >> plugin/loader/preload_list
-
-# Build kubo with the plugin
-> make build
-
-# (Optionally) install kubo onto the local system.
-> make install
+git clone https://github.com/ipfs/kubo
 ```
 
-## Building docker container
-
+Get the GCS datastore plugin and add it to the preload list.
 ```bash
-# Follow the "Building binary" section first, then:
-# Clone the GCS datastore plugin.
-> cd ..
-> git clone https://github.com/bjornleffler/go-ds-gcs
-
-# Build the Docker entrypoint binary.
-> (cd go-ds-gcs; go build docker/entrypoint.go)
-
-# In the current directory, there should be two directories: kubo and go-ds-gcs
-# Build docker container.
-> docker build -f go-ds-gcs/docker/Dockerfile -t ipfs
-
-# (Optionally) Create and run a docker container.
-docker run -d --net=host --name=ipfs ipfs
+(cd kubo; go get github.com/bjornleffler/go-ds-gcs/plugin)
+echo "gcsds github.com/bjornleffler/go-ds-gcs/plugin 0" >> kubo/plugin/loader/preload_list
 ```
 
-## Detailed Installation
+Build kubo with the plugin
+```bash
+(cd kubo; make build)
+```
+
+(Optionally) install kubo onto the local system.
+```bash
+(cd kubo; make install)
+```
+
+## Building Docker container
+
+Follow the "Building binary" section first. Clone the GCS datastore plugin and build the Docker entrypoint.
+```bash
+git clone https://github.com/bjornleffler/go-ds-gcs
+(cd go-ds-gcs; go build docker/entrypoint.go)
+```
+
+Build docker container.
+```bash
+docker build -f go-ds-gcs/docker/Dockerfile -t ipfs
+```
+
+(Optional) tag and push image to repository. Replace _repository_ with your GCR repository.
+```bash
+docker tag ipfs gcr.io/repository/ipfs
+docker push gcr.io/repository/ipfs
+```
+
+## Deployment: Docker
+
+_ipfs_ is the image name from the previous section, "Building docker container"
+```bash
+docker run -d -p 4001:4001 -p 5001:5001 -p 8080:8080 --name=ipfs ipfs
+```
+
+Or you can use the tagged image from the previous section.
+```bash
+docker run -d -p 4001:4001 -p 5001:5001 -p 8080:8080 --name=ipfs gcr.io/repository/ipfs
+```
+
+## Deployment: Kubernetes (GKE)
+
+1. Create a GKE cluster. The node pool must have write permission to the GCS bucket.
+2. Replace _repository_ with your repository name in kubernetes/ipfs.yml
+3. Replace _mynamespace_ with your namespace name in kubernetes/ipfs.yml
+4. Create namespace in GKE.
+```bash
+kubectl create namespace mynamespace
+```
+
+5. Deploy to GKE.
+```bash
+kubectl apply -f kubernetes/ipfs.yml
+```
+
+6. IPFS can now be accessed at ipfs._mynamespace_ from other pods in the GKE cluster:
+```bash
+curl http://ipfs.mynamespace:8080/...
+```
+
+## Deployment: Local
 
 For a brand new ipfs instance (no data stored yet):
 
-1. Copy kubo/cmd/ipfs/ipfs to where you want it installed.
-2. Run `KUBO_GCS_BUCKET=mybucket ipfs init --profile gcsds` (depending on code yet to be submitted).
-3. To run as a server, also run `ipfs config profile apply server` followed by `ipfs daemon`
+1. Install kubo/cmd/ipfs/ipfs
+2. Initialize IPFS. Replace _mybucket_ with your bucket name. Note that this depends on this [Pull Request](https://github.com/ipfs/kubo/pull/9889).
+```bash
+KUBO_GCS_BUCKET=mybucket ipfs init --profile gcsds
+```
+4. To run as a server, also run
+```bash
+ipfs config profile apply server
+ipfs config Addresses.Gateway /ip4/0.0.0.0/tcp/8080
+ipfs daemon
+```
 
-### Configuration
+## Configuration
 
-The config file should include the following:
+The config file should include the following. Replace _mybucket_ with your bucket name.
 ```json
 {
-  "Datastore": {
-  ...
-
-    "Spec": {
-      "mounts": [
-        {
-          "child": {
-            "bucket": "MYBUCKET",
-            "cachesize": 40000,
-            "prefix": "ipfs",
-            "type": "gcsds",
-            "workers": 100
-          },
-          "mountpoint": "/blocks",
-          "prefix": "flatfs.datastore",
-          "type": "measure"
-        },
+	"Datastore": {
+		"Spec": {
+			"mounts": [{
+				"child": {
+					"bucket": "mybucket",
+					"cachesize": 40000,
+					"prefix": "ipfs",
+					"type": "gcsds",
+					"workers": 100
+				},
+				"mountpoint": "/blocks",
+				"prefix": "flatfs.datastore",
+				"type": "measure"
+			}]
+		}
+	}
+}
 ```
 
 ## Contribute
