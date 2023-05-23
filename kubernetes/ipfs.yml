@@ -23,6 +23,11 @@
 # Create the namespace first using:
 #   kubectl create namespace mynamespace
 
+# Instructions to users of this file:
+# 1. Update 'repository' to your repository.
+# 2. Update 'mynamespace' to a name of your choise.
+#    Or remove it if you don't want to use namespaces.
+
 # IPFS deployment in GKE.
 apiVersion: apps/v1
 kind: Deployment
@@ -43,7 +48,7 @@ spec:
     spec:
       containers:
         - name: ipfs
-          image: gcr.io/REPOSITORY/ipfs
+          image: gcr.io/repository/ipfs
           imagePullPolicy: Always
           command: ["/entrypoint"]
           # All ports configured, but may not be exposed.
