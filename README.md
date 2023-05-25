@@ -117,6 +117,12 @@ The config file should include the following. Replace _mybucket_ with your bucke
 }
 ```
 
+## Google Cloud credentials
+
+Google Cloud credentials should automatically be provided when running in Google Compute Engine (GCE) or Google Kubernetes Engine (GKE). Note that for both GCE and GKE, the (node) VM needs to have write permission (scope) to GCS. For GKE, this is achieved by creating the node pool  with the "Storage read/write" [scope](https://cloud.google.com/kubernetes-engine/docs/how-to/access-scopes), which is "devstorage.read_write".
+
+In other environments, you may have to provide credentials. One way is to use the GOOGLE_APPLICATION_CREDENTIALS environment variable. See [this document](https://cloud.google.com/docs/authentication/application-default-credentials) for more details. 
+
 ## Contribute
 
 Feel free to join in. All welcome. Open an [issue](https://github.com/bjornleffler/go-ds-gcs/issues/new/choose)!
