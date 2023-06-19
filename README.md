@@ -34,9 +34,10 @@ git clone https://github.com/bjornleffler/go-ds-gcs
 (cd go-ds-gcs; go build docker/entrypoint.go)
 ```
 
-Build docker container.
+Build docker entrypoint and container.
 ```bash
-docker build -f go-ds-gcs/docker/Dockerfile -t ipfs
+cd go-ds-gcs; go build docker/entrypoint.go; cd ..
+docker build -f go-ds-gcs/docker/Dockerfile -t ipfs .
 ```
 
 (Optional) tag and push image to repository. Replace _repository_ with your GCR repository.
