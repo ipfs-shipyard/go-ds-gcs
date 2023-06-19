@@ -34,9 +34,8 @@ git clone https://github.com/bjornleffler/go-ds-gcs
 (cd go-ds-gcs; go build docker/entrypoint.go)
 ```
 
-Build docker entrypoint and container.
+Build docker and container.
 ```bash
-cd go-ds-gcs; go build docker/entrypoint.go; cd ..
 docker build -f go-ds-gcs/docker/Dockerfile -t ipfs .
 ```
 
