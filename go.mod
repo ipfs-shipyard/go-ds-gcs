@@ -1,7 +1,5 @@
 module github.com/ipfs-shipyard/go-ds-gcs
 
-replace github.com/ipfs/kubo v0.20.0 => ../kubo
-
 go 1.19
 
 require (
