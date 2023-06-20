@@ -16,7 +16,8 @@ package test
 
 import (
 	"testing"
-	gcsds "github.com/bjornleffler/go-ds-gcs"
+
+	gcsds "github.com/ipfs-shipyard/go-ds-gcs"
 )
 
 func TestEntry(t *testing.T) {
@@ -70,7 +71,7 @@ func TestIteratorSingleEntry(t *testing.T) {
 	}
 }
 
-func metadataCacheWithEntries() (*gcsds.MetadataCache) {
+func metadataCacheWithEntries() *gcsds.MetadataCache {
 	md := gcsds.NewMetadataCache()
 	key1 := "AA" + randomKey().String()
 	key2 := "AB" + randomKey().String()
@@ -84,7 +85,7 @@ func metadataCacheWithEntries() (*gcsds.MetadataCache) {
 	return md
 }
 
-func getEntries(it func() (*gcsds.Metadata)) (map[string]int64) {
+func getEntries(it func() *gcsds.Metadata) map[string]int64 {
 	entries := map[string]int64{}
 	m := it()
 	for m != nil {

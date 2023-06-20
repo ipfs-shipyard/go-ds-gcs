@@ -17,12 +17,12 @@ package test
 import (
 	"bytes"
 	"context"
-	"testing"
 	"os"
+	"testing"
 
+	gcsds "github.com/bjornleffler/go-ds-gcs"
 	ds "github.com/ipfs/go-datastore"
 	dsq "github.com/ipfs/go-datastore/query"
-	gcsds "github.com/bjornleffler/go-ds-gcs"
 	dstest "github.com/ipfs/go-datastore/test"
 )
 
@@ -38,9 +38,9 @@ func getTestBucket(t *testing.T) string {
 
 func GetGCSDatastore(t *testing.T) *gcsds.GCSDatastore {
 	config := gcsds.Config{
-		Bucket:  getTestBucket(t),
-		Prefix:  "ipfs",
-		Workers: 10,
+		Bucket:         getTestBucket(t),
+		Prefix:         "ipfs",
+		Workers:        10,
 		DataCacheItems: 1000,
 	}
 	ds, err := gcsds.NewGCSDatastore(config)
@@ -193,9 +193,9 @@ func TestQuery(t *testing.T) {
 
 func TestSuiteGCS(t *testing.T) {
 	config := gcsds.Config{
-		Bucket: getTestBucket(t),
-		Prefix: "ipfs",
-		Workers: 100,
+		Bucket:         getTestBucket(t),
+		Prefix:         "ipfs",
+		Workers:        100,
 		DataCacheItems: 40000,
 	}
 
