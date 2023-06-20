@@ -125,9 +125,9 @@ In other environments, you may have to provide credentials. One way is to use th
 
 ## Contribute
 
-Feel free to join in. All welcome. Open an [issue](https://github.com/bjornleffler/go-ds-gcs/issues/new/choose)!
+Feel free to join in. All welcome. Open an [issue](https://github.com/ipfs-shipyard/go-ds-gcs/issues/new/choose)!
 
-This repository falls under the IPFS [Code of Conduct](https://github.com/ipfs/community/blob/master/code-of-conduct.md) and the Google [Code of Conduct](https://github.com/bjornleffler/go-ds-gcs/blob/master/docs/code-of-conduct.md)
+This repository falls under the IPFS [Code of Conduct](https://github.com/ipfs/community/blob/master/code-of-conduct.md) and the Google [Code of Conduct](https://github.com/ipfs-shipyard/go-ds-gcs/blob/master/docs/code-of-conduct.md)
 
 ## License
 
