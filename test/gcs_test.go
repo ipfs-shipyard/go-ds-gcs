@@ -20,7 +20,7 @@ import (
 	"os"
 	"testing"
 
-	gcsds "github.com/bjornleffler/go-ds-gcs"
+	gcsds "github.com/ipfs-shipyard/go-ds-gcs"
 	ds "github.com/ipfs/go-datastore"
 	dsq "github.com/ipfs/go-datastore/query"
 	dstest "github.com/ipfs/go-datastore/test"
