@@ -12,8 +12,8 @@ git clone https://github.com/ipfs/kubo
 
 Get the GCS datastore plugin and add it to the preload list.
 ```bash
-(cd kubo; go get github.com/bjornleffler/go-ds-gcs/plugin)
-echo "gcsds github.com/bjornleffler/go-ds-gcs/plugin 0" >> kubo/plugin/loader/preload_list
+(cd kubo; go get github.com/ipfs-shipyard/go-ds-gcs/plugin)
+echo "gcsds github.com/ipfs-shipyard/go-ds-gcs/plugin 0" >> kubo/plugin/loader/preload_list
 ```
 
 Build kubo with the plugin
@@ -30,7 +30,7 @@ Build kubo with the plugin
 
 Follow the "Building binary" section first. Clone the GCS datastore plugin and build the Docker entrypoint.
 ```bash
-git clone https://github.com/bjornleffler/go-ds-gcs
+git clone https://github.com/ipfs-shipyard/go-ds-gcs
 (cd go-ds-gcs; go build docker/entrypoint.go)
 ```
 
