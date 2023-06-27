@@ -184,7 +184,7 @@ func TestQuery(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Query err: %v", err)
 	}
-	entries, err := results.Rest()
+	entries, _ := results.Rest()
 	expected := 2
 	if len(entries) != expected {
 		t.Fatalf("Got %d entries, expected %d.", len(entries), expected)
