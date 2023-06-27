@@ -39,7 +39,7 @@ type Config struct {
 }
 
 var (
-	client *storage.Client
+	client       *storage.Client
 	SleepSeconds int
 )
 
@@ -62,7 +62,7 @@ func exit() {
 	os.Exit(1)
 }
 
-func getStorageClient(){
+func getStorageClient() {
 	var err error
 	client, err = storage.NewClient(context.Background())
 	if err != nil {
