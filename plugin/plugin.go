@@ -126,6 +126,9 @@ func (gcsConfig *GcsConfig) DiskSpec() fsrepo.DiskSpec {
 func (gcsConfig *GcsConfig) Create(path string) (repo.Datastore, error) {
 	log.Printf("Create() path: %s\n", path)
 	gd, err := gcsds.NewGCSDatastore(gcsConfig.cfg)
+	if err != nil {
+		return nil, err
+	}
 	if err = gd.LoadMetadata(); err != nil {
 		return nil, err
 	}
