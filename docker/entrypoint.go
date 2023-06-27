@@ -85,7 +85,7 @@ func getProject() string {
 	}
 	project := credentials.ProjectID
 	if project == "" {
-		log.Printf(msg)
+		log.Print(msg)
 		exit()
 	}
 	return project
@@ -117,18 +117,15 @@ func foundPrefixInGCS(project, bucket, prefix string) bool {
 	ctx := context.Background()
 	q := storage.Query{Prefix: prefix}
 	it := client.Bucket(bucket).Objects(ctx, &q)
-	for {
-		_, err := it.Next()
-		if err == iterator.Done {
-			break
-		}
-		if err != nil {
-			log.Printf("%v", err)
-			exit()
-		}
-		return true
+	_, err := it.Next()
+	if err == iterator.Done {
+		return false
 	}
-	return false
+	if err != nil {
+		log.Printf("%v", err)
+		exit()
+	}
+	return true
 }
 
 func chooseProject(cfg *Config) {
@@ -186,9 +183,7 @@ func checkBucket(cfg *Config) {
 
 func run(args []string, env ...string) {
 	cmd := exec.Command(args[0], args[1:]...)
-	for _, s := range env {
-		cmd.Env = append(cmd.Env, s)
-	}
+	cmd.Env = append(cmd.Env, env...)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	log.Printf("-------------------------------------------------")
