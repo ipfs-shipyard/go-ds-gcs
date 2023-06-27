@@ -81,7 +81,7 @@ func (plugin GCSPlugin) DatastoreConfigParser() fsrepo.ConfigFromMap {
 				return nil, fmt.Errorf("gcsds: workers not a number: %T %v", v, v)
 			}
 			if workers <= 0 {
-				return nil, fmt.Errorf("gcsds: workers <= 0: %f", workers)
+				return nil, fmt.Errorf("gcsds: workers <= 0: %d", workers)
 			}
 		}
 
@@ -95,7 +95,7 @@ func (plugin GCSPlugin) DatastoreConfigParser() fsrepo.ConfigFromMap {
 				return nil, fmt.Errorf("gcsds: cachesize not a number: %T %v", v, v)
 			}
 			if cacheSize <= 0 {
-				return nil, fmt.Errorf("gcsds: cachesize <= 0: %f", cacheSize)
+				return nil, fmt.Errorf("gcsds: cachesize <= 0: %d", cacheSize)
 			}
 		}
 
@@ -110,7 +110,6 @@ func (plugin GCSPlugin) DatastoreConfigParser() fsrepo.ConfigFromMap {
 			},
 		}, nil
 	}
-	return nil
 }
 
 type GcsConfig struct {
