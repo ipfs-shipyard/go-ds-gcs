@@ -201,8 +201,8 @@ func (gd *GCSDatastore) Delete(ctx context.Context, k ds.Key) error {
 
 func (gd *GCSDatastore) Query(ctx context.Context, q dsq.Query) (dsq.Results, error) {
 	if len(q.Orders) > 0 || len(q.Filters) > 0 {
-		msg := "GCSDatastore: Orders and Filters not supported."
-		log.Printf(msg)
+		msg := "GCSDatastore: Orders and Filters not supported"
+		log.Print(msg)
 		return nil, fmt.Errorf(msg)
 	}
 	if !q.KeysOnly {

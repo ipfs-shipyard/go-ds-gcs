@@ -62,7 +62,7 @@ func (md *MetadataCache) Size() int {
 }
 
 // Offset not supported, for now.
-func (md *MetadataCache) Iterator(prefix string, limit int) (func() (*Metadata)) {
+func (md *MetadataCache) Iterator(prefix string, limit int) func() *Metadata {
 	values := []*Metadata{}
 	count := 0
 	// TODO(leffler): Iterate consistently over map, so that offset and limit work correctly.
@@ -78,7 +78,7 @@ func (md *MetadataCache) Iterator(prefix string, limit int) (func() (*Metadata))
 
 	i := 0
 	l := len(values)
-	f := func() (*Metadata) {
+	f := func() *Metadata {
 		if i >= l {
 			return nil
 		}
