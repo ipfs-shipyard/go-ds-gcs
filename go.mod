@@ -2,7 +2,6 @@ module github.com/ipfs-shipyard/go-ds-gcs
 
 go 1.21
 
-
 require (
 	cloud.google.com/go/storage v1.30.1
 	github.com/hashicorp/golang-lru v0.5.4
