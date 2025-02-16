@@ -1,6 +1,6 @@
 module github.com/ipfs-shipyard/go-ds-gcs
 
-go 1.22
+go 1.23
 
 require (
 	cloud.google.com/go/storage v1.30.1
