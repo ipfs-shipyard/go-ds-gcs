@@ -1,3 +1,18 @@
+> [!IMPORTANT]
+> **This project is no longer maintained and the repository is archived.**
+>
+> The code is here and unchanged, but nobody is keeping it current with Kubo or
+> the Google Cloud SDK; `go.mod` still targets Go 1.20. Expect to do some work
+> before it builds against a recent Kubo.
+>
+> One thing to know before you try: the `ipfs init --profile gcsds` step below
+> depends on [ipfs/kubo#9889](https://github.com/ipfs/kubo/pull/9889), which was
+> closed without being merged, so that profile does not exist in upstream Kubo.
+>
+> The repository can be unarchived, but only for a named maintainer who commits
+> to keeping it up. If that is you, reach out to the
+> [IPFS Foundation](https://ipfsfoundation.org/about/).
+
 # GCS Datastore Implementation for IPFS
 
 An implementation of the [go-datastore](https://github.com/ipfs/go-datastore) interface backed by Google Cloud Storage, GCS. The implementation is based on [go-ds-s3](https://github.com/ipfs/go-ds-s3)
@@ -125,7 +140,11 @@ In other environments, you may have to provide credentials. One way is to use th
 
 ## Contribute
 
-Feel free to join in. All welcome. Open an [issue](https://github.com/ipfs-shipyard/go-ds-gcs/issues/new/choose)!
+This repository is archived and is not accepting contributions. Drive-by patches
+will not reopen it. Unarchiving requires someone willing to be named as
+maintainer and to keep the plugin working against current Kubo. If that is you,
+contact the [IPFS Foundation](https://ipfsfoundation.org/about/). Forking is fine
+too.
 
 This repository falls under the IPFS [Code of Conduct](https://github.com/ipfs/community/blob/master/code-of-conduct.md) and the Google [Code of Conduct](https://github.com/ipfs-shipyard/go-ds-gcs/blob/master/docs/code-of-conduct.md)
 
